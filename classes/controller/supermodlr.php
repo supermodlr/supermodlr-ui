@@ -1,6 +1,6 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 
-class Controller_supermodlr extends Controller_Page {
+class Controller_Supermodlr extends Controller_Page {
 
 	public function before()
 	{
@@ -16,7 +16,7 @@ class Controller_supermodlr extends Controller_Page {
 			//list all models that can be modified and link to their pages
 			$this->template = 'list';
 			
-			$models = supermodlr_core::get_models();
+			$models = Supermodlr_Core::get_models();
 			$this->bind('models',$models);
 		}
 		
