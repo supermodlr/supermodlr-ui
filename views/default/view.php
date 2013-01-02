@@ -1,5 +1,5 @@
 <?php
-
+//@todo convert this whole page to be generic "list" template and convert the whole thing to use angular js
 ?>
 <div>
 <h1><?php echo ucfirst(str_replace('_',' ',$model_name)); ?></h1>
@@ -8,6 +8,7 @@
 	{
 		?><table><?php
 		$c = 0;
+		$js_template = '';
 		foreach ($model_rows as $row)
 		{
 			if ($c == 0)
@@ -16,11 +17,26 @@
 				foreach ($fields as $col => $val) 
 				{
 					if ($col_count == 10) continue;
-					?><td><?=$col ?></td><?php
+					?><td><?=$col ?>
+<div><input type="text" id="filter__<?=$col ?>" style='width: 80px' class="filter_input"/></div>
+					</td><?php
+					if ($col == '_id') 
+					{
+						$js_template .= '<td><a href="/supermodlr/'.$model_name.'/read/\'+row._id+\'">\'+row._id+\'</a></td>';
+					}
+					else
+					{
+						$js_template .= '<td>\'+row.'.$col.'+\'</td>';
+					}					
+					
 					$col_count++;
-				} ?></tr></thead><tbody><?php 
+				} 
+
+				$js_template .= '<td><a href="/supermodlr/'.$model_name.'/update/\'+row._id+\'">Edit</a></td><td><a href="/supermodlr/'.$model_name.'/delete/\'+row._id+\'">Delete</a></td>';
+				?></tr></thead><tbody id="data_body"><?php 
 			}
 			$col_count = 0;
+			?><tr><?php 
 			foreach ($fields as $col => $val) 
 			{
 				if ($col_count == 10) continue;
@@ -39,7 +55,7 @@
 				<td><a href="/supermodlr/<?php echo $model_name; ?>/update/<?php echo $row['_id']; ?>">Edit</a></td>
 				<td><a href="/supermodlr/<?php echo $model_name; ?>/delete/<?php echo $row['_id']; ?>">Delete</a></td>
 			</tr>
-			</tbody><?php
+			<?php
 			$c++;
 		}
 		?></tbody></table><?php
@@ -49,3 +65,46 @@
 		?><br/>No results<?php
 	}
 ?></div>
+
+<script type="text/javascript">
+
+function filter(o) {
+
+	//get all filter data
+	var query = {
+		"from": "<?=$model->get_name() ?>",
+		"where": {},
+		"limit": 20,
+	};
+	$('.filter_input').each(function() {
+		var field_key = this.id.split('__')[1];
+		if (this.value != '') {
+			query.where[field_key] = {"$regex": "/^"+this.value+"/i"};
+		}
+	});
+
+	$.ajax({
+		"url": '<?=$controller->api_path()?><?=$model->get_name() ?>/query/?q='+JSON.stringify(query)+'&d='+(new Date()).valueOf(),
+	}).done(function(result){
+console.log(result);
+		$('#data_body').empty();
+		for (var i = 0; i < result.length; i++) {
+			var row = result[i];
+			$('#data_body').append('<tr><?=$js_template ?></tr>');
+		}
+
+
+	});
+}
+
+$('.filter_input').bind({
+	keypress: function() {
+	filter(this);
+	},
+	change: function() {
+	filter(this);
+	}
+});
+
+
+</script>
