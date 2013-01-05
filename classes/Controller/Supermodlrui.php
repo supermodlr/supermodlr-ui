@@ -1,6 +1,6 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 
-class Controller_Supermodlr extends Controller_Page {
+class Controller_Supermodlrui extends Controller_Page {
 
 	public function before()
 	{
@@ -16,7 +16,7 @@ class Controller_Supermodlr extends Controller_Page {
 			//list all models that can be modified and link to their pages
 			$this->template = 'list';
 			
-			$models = Supermodlr_Core::get_models();
+			$models = Supermodlr::get_models();
 			$this->bind('models',$models);
 		}
 		
@@ -474,7 +474,6 @@ class Controller_Supermodlr extends Controller_Page {
 				}
 
 				//get method contents from php file
-				//@@ C:\Users\Justin\www\mmgi\application\classes\Model\Websiteuser.php 12 - 16
 				preg_match("/\@\@ .+[.]php ([0-9]+) - ([0-9]+)/i", $method->__toString(),$matches);
 				list($line,$start,$end) = $matches;
 				$source = array_slice($Class_Source, $start-1, ($end-$start)+1);

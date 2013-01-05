@@ -1,13 +1,13 @@
 <?php
-Route::set('supermodlr/import','supermodlr/import')
+Route::set('supermodlrui/supermodlrcore/import','supermodlrui/supermodlrcore/import')
 	->defaults(array(
-		'controller' => 'Supermodlr',
+		'controller' => 'Supermodlrui',
 		'action'     => 'import',
 	));
 
-Route::set('supermodlr', 'supermodlr/<model>(/<action>(/<id>))', array('model' => '[a-zA-Z0-9_]+', 'action' => '[a-zA-Z0-9_]+', 'id' => '[a-zA-Z0-9_]+'))
+Route::set('supermodlrui', 'supermodlrui/<model>(/<action>(/<id>))', array('model' => '[a-zA-Z0-9_]+', 'action' => '[a-zA-Z0-9_]+', 'id' => '[a-zA-Z0-9_]+'))
 	->defaults(array(
-		'controller' => 'Supermodlr',
+		'controller' => 'Supermodlrui',
 		'action'     => 'index',
 	));
 

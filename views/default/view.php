@@ -3,7 +3,7 @@
 ?>
 <div>
 <h1><?php echo ucfirst(str_replace('_',' ',$model_name)); ?></h1>
-	<a href="/supermodlr/<?php echo $model_name; ?>/create">Create</a><?php
+	<a href="/supermodlrui/<?php echo $model_name; ?>/create">Create</a><?php
 	if (count($model_rows) > 0)
 	{
 		?><table><?php
@@ -22,7 +22,7 @@
 					</td><?php
 					if ($col == '_id') 
 					{
-						$js_template .= '<td><a href="/supermodlr/'.$model_name.'/read/\'+row._id+\'">\'+row._id+\'</a></td>';
+						$js_template .= '<td><a href="/supermodlrui/'.$model_name.'/read/\'+row._id+\'">\'+row._id+\'</a></td>';
 					}
 					else
 					{
@@ -32,7 +32,7 @@
 					$col_count++;
 				} 
 
-				$js_template .= '<td><a href="/supermodlr/'.$model_name.'/update/\'+row._id+\'">Edit</a></td><td><a href="/supermodlr/'.$model_name.'/delete/\'+row._id+\'">Delete</a></td>';
+				$js_template .= '<td><a href="/supermodlrui/'.$model_name.'/update/\'+row._id+\'">Edit</a></td><td><a href="/supermodlr/'.$model_name.'/delete/\'+row._id+\'">Delete</a></td>';
 				?></tr></thead><tbody id="data_body"><?php 
 			}
 			$col_count = 0;
@@ -42,7 +42,7 @@
 				if ($col_count == 10) continue;
 				if ($col == '_id') 
 				{
-					?><td><a href="/supermodlr/<?php echo $model_name; ?>/read/<?=$row['_id']; ?>"><?=$row['_id']; ?></a></td><?php
+					?><td><a href="/supermodlrui/<?php echo $model_name; ?>/read/<?=$row['_id']; ?>"><?=$row['_id']; ?></a></td><?php
 				}
 				else
 				{
@@ -52,8 +52,8 @@
 			} ?>
 
 				
-				<td><a href="/supermodlr/<?php echo $model_name; ?>/update/<?php echo $row['_id']; ?>">Edit</a></td>
-				<td><a href="/supermodlr/<?php echo $model_name; ?>/delete/<?php echo $row['_id']; ?>">Delete</a></td>
+				<td><a href="/supermodlrui/<?php echo $model_name; ?>/update/<?php echo $row['_id']; ?>">Edit</a></td>
+				<td><a href="/supermodlrui/<?php echo $model_name; ?>/delete/<?php echo $row['_id']; ?>">Delete</a></td>
 			</tr>
 			<?php
 			$c++;
