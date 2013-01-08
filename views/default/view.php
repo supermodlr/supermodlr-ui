@@ -4,11 +4,12 @@
 <div>
 <h1><?php echo ucfirst(str_replace('_',' ',$model_name)); ?></h1>
 	<a href="/supermodlrui/<?php echo $model_name; ?>/create">Create</a><?php
+	$js_template = '';
 	if (count($model_rows) > 0)
 	{
 		?><table><?php
 		$c = 0;
-		$js_template = '';
+		
 		foreach ($model_rows as $row)
 		{
 			if ($c == 0)
