@@ -425,13 +425,24 @@ class Controller_Supermodlrui extends Controller_Page {
 			}
 		}
 
-
+		$field_keys = NULL;
 		//get fields
 		if ($is_model && isset($Object::$__scfg[$json['name'].'.field_keys']))
 		{
 			//get all field keys
 			$field_keys = $Object::$__scfg[$json['name'].'.field_keys'];
 
+
+
+		}
+		else if ($is_model && isset($Object::$__scfg['field_keys']))
+		{
+			//get all field keys
+			$field_keys = $Object::$__scfg['field_keys'];
+		} 
+
+		if ($field_keys !== NULL)
+		{
 			//loop through all set field keys
 			foreach ($field_keys as $key)
 			{
@@ -441,7 +452,6 @@ class Controller_Supermodlrui extends Controller_Page {
 				//construct proper field rel value and add it to the json object
 				$json['fields'][] = array('model'=> 'field', '_id'=> 'Field_'.ucfirst($json['name']).'_'.ucfirst($key));
 			}
-			
 
 		}
 
