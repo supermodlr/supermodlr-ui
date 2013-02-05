@@ -14,6 +14,7 @@ $driver_config = array(
     )
 );
 return array(
+    'drivers_config' => $driver_config,
     'field.drivers_config' => $driver_config,
     'model.drivers_config' => $driver_config,   
 );
