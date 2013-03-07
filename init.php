@@ -13,4 +13,10 @@ if (Kohana::$environment !== Kohana::PRODUCTION)
             'controller' => 'Supermodlrui',
             'action'     => 'index',
         ));
+
+   // Allow supermodlr-ui controller to be loaded with project name.
+   Route::set('supermodlr-ui', 'supermodlr-ui(/<action>(/<id>))')->defaults(array(
+      'controller'      => 'Supermodlrui',
+      'action'          => 'index',
+   ));
 }
