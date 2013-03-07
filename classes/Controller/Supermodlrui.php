@@ -2,6 +2,7 @@
 
 class Controller_Supermodlrui extends Controller_Page {
 
+
     public function before()
     {
         if (Kohana::$environment === Kohana::PRODUCTION)
@@ -11,7 +12,11 @@ class Controller_Supermodlrui extends Controller_Page {
                                                     array(':uri' => $this->request->uri()));
         }
 
+        // Force the default theme
+        $this->theme('default');
+
         parent::before();
+        
         $this->init_req_model();
     }
 
