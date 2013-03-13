@@ -134,6 +134,7 @@ class Controller_Supermodlrui extends Controller_Page {
         }
         
         $model_class = $this->model_class;
+        fbl($model_class,'$model_class');
         $model = new $model_class($id);
 
         if ($model->loaded() === FALSE)
@@ -204,6 +205,10 @@ class Controller_Supermodlrui extends Controller_Page {
                 APPPATH.'classes'.DIRECTORY_SEPARATOR.'Model'.DIRECTORY_SEPARATOR,
                 MODPATH.'supermodlr'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'Model'.DIRECTORY_SEPARATOR,
             ),          
+            'Trait'=> array(
+                APPPATH.'classes'.DIRECTORY_SEPARATOR.'Trait'.DIRECTORY_SEPARATOR,
+                MODPATH.'supermodlr'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'Trait'.DIRECTORY_SEPARATOR,
+            ),              
         );
 
         $Model = new Model_Model();
@@ -217,7 +222,8 @@ class Controller_Supermodlrui extends Controller_Page {
         //skip core model and field models
         $loaded['Model_Model'] = TRUE;
         $loaded['Model_Field'] = TRUE;
-
+        $loaded['Model_Trait'] = TRUE;
+        
         //loop through class types to look for
         foreach ($paths as $type => $type_arry) 
         {
@@ -257,7 +263,7 @@ class Controller_Supermodlrui extends Controller_Page {
                             if (!isset($loaded[$class_name]))
                             {
 
-                                $obj = $this->class_to_db_object($class_name, $sub_path.$sub_filename);
+                                $obj = Supermodlrui::class_to_db_object($class_name, $sub_path.$sub_filename);
                                 $loaded[$class_name] = TRUE;
 
                                 //store it in the local db
@@ -302,7 +308,7 @@ class Controller_Supermodlrui extends Controller_Page {
                     if (!isset($loaded[$class_name]))
                     {
 
-                        $obj = $this->class_to_db_object($class_name, $path.$filename);
+                        $obj = Supermodlrui::class_to_db_object($class_name, $path.$filename);
                         $loaded[$class_name] = TRUE;
 
                         //store it in the local db
@@ -342,174 +348,5 @@ class Controller_Supermodlrui extends Controller_Page {
         }
     }
 
-
-    public function class_to_db_object($class_name, $path_to_file) 
-    {
-        $json = array();
-
-        if (!class_exists($class_name,FALSE)) 
-        {
-            //read the file
-            include $path_to_file;
-        }
-
-        $Class = new ReflectionClass($class_name);
-        $Object = new $class_name();
-
-        $Class_Source = file($path_to_file);
-
-        //set class name as _id
-        $json['_id'] = $class_name;
-
-        //set all non static properties
-        foreach ($Class->getProperties() as $property) 
-        {
-            //skip static and inheirited properties
-            if ($property->isStatic() || $property->class != $class_name) continue;
-
-            //get the default property value
-            $json[$property->name] = $property->getValue($Object);
-        }
-
-        $is_model = FALSE;
-        $is_field = FALSE;
-        if (substr($class_name,0,5) === 'Model')
-        {
-            $is_model = TRUE;
-        }
-        else if (substr($class_name,0,5) === 'Field')
-        {           
-            $is_field = TRUE;
-        }
-        //get name, if not set
-        if (!isset($json['name']))
-        {
-            if ($is_model)
-            {
-                $json['name'] = Model_Model::get_name_from_class($class_name);
-            }
-            else if ($is_field)
-            {
-                $json['name'] = Model_Field::get_name_from_class($class_name);
-            }   
-        }
-
-        //set extends, if not set
-        if (!isset($json['extends']))
-        {       
-            $extends = get_parent_class($class_name);
-
-            //extends is null if it is supposed to point to core
-            if (strtolower($extends) === 'supermodlr')
-            {
-                $json['extends'] = NULL;
-            }
-            else
-            {
-                $extends_rel = NULL;
-                if ($is_model)
-                {
-                    $extends_rel = array('model'=> 'model', '_id'=> $extends);
-                }
-                else if ($is_field)
-                {
-                    $extends_rel = array('model'=> 'field', '_id'=> $extends);
-                }
-                
-                $json['extends'] = $extends_rel;
-            }
-        }
-
-        //get description, if any
-        if (!isset($json['description']))
-        {
-            //get description, if any
-            preg_match('/FileDescription:\s(.*)/',implode("",$Class_Source),$matches);
-
-            //if a description was found
-            if (isset($matches[1]))
-            {
-                $json['description'] = $matches[1];
-            }
-            else
-            {
-                $json['description'] = '';
-            }
-        }
-
-        $field_keys = NULL;
-        //get fields
-        if ($is_model && isset($Object::$__scfg[$json['name'].'.field_keys']))
-        {
-            //get all field keys
-            $field_keys = $Object::$__scfg[$json['name'].'.field_keys'];
-
-
-
-        }
-        else if ($is_model && isset($Object::$__scfg['field_keys']))
-        {
-            //get all field keys
-            $field_keys = $Object::$__scfg['field_keys'];
-        } 
-
-        if ($field_keys !== NULL)
-        {
-            //loop through all set field keys
-            foreach ($field_keys as $key)
-            {
-                //skip pk which is auto-set and not stored in fields list
-                if (strtolower($key) == strtolower($Object->cfg('pk_name'))) continue;
-
-                //construct proper field rel value and add it to the json object
-                $json['fields'][] = array('model'=> 'field', '_id'=> 'Field_'.ucfirst($json['name']).'_'.ucfirst($key));
-            }
-
-        }
-
-        //loop through all methods
-        foreach ($Class->getMethods() as $method) 
-        {
-
-            //if this method is not inheireted from a parent class
-            if (preg_match('/(.*)Method \[ <user>/s',$method->__toString(),$matches)) 
-            {
-                //get comments, if any
-                if (isset($matches[1]))
-                {
-                    $comment = $matches[1];
-                }
-                else
-                {
-                    $comment = NULL;
-                }
-
-                //if this is an event method
-                if (preg_match('/^event__/i',$method->name))
-                {
-                    $parts = explode('__',$method->name);
-                    $event_name = array_pop($parts);
-                }
-                else
-                {
-                    $event_name = NULL;
-                }
-
-                //get method contents from php file
-                preg_match("/\@\@ .+[.]php ([0-9]+) - ([0-9]+)/i", $method->__toString(),$matches);
-                list($line,$start,$end) = $matches;
-                $source = array_slice($Class_Source, $start-1, ($end-$start)+1);
-                
-                $json['methods'][] = array(
-                    'name' => $method->name,
-                    'comment' => $comment,
-                    'source' => implode("",$source),
-                    'event' => $event_name,
-                );
-            }
-        }
-
-        return $json;
-    }
 
 } // End Welcome
