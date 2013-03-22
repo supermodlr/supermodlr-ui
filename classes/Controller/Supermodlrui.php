@@ -134,8 +134,7 @@ class Controller_Supermodlrui extends Controller_Page {
         }
         
         $model_class = $this->model_class;
-        fbl($model_class,'$model_class');
-        $model = new $model_class($id);
+        $model = $model_class::factory($id);
 
         if ($model->loaded() === FALSE)
         {

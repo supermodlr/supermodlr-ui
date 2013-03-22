@@ -96,7 +96,6 @@ class Supermodlrui {
             require_once $path_to_file;
         }
 
-
         $is_model = FALSE;
         $is_field = FALSE;
         $is_trait = FALSE;
@@ -114,17 +113,29 @@ class Supermodlrui {
         }   
 
         $Class = new ReflectionClass($class_name);
+
         if ($is_trait)
         {
             $temp_class_name = "Class_".$class_name;
             eval("class ".$temp_class_name." { use ".$class_name.";}");
             $Object = new $temp_class_name();
+            $Object_Model = Model_Trait::factory();
         }
         else
         {
             $Object = new $class_name();
+            if ($is_model)
+            {
+                $Object_Model = Model_Model::factory();
+            }
+            else if ($is_field)
+            {
+                $Object_Model = Model_Field::factory();
+            }
+            
         }
         
+        $fields = $Object_Model->get_fields();
 
         $Class_Source = file($path_to_file);
 
@@ -138,7 +149,18 @@ class Supermodlrui {
             if ($property->isStatic() || $property->class != $class_name) continue;
 
             //get the default property value
-            $json[$property->name] = $property->getValue($Object);
+            if (isset($fields[$property->name]))
+            {
+                $value = $fields[$property->name]->store_value($property->getValue($Object),'storage');
+                
+            }
+            else
+            {
+                $value = $property->getValue($Object);
+            }
+
+            
+            $json[$property->name] = $value;
         }
      
 
