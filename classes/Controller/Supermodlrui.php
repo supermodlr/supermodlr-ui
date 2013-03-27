@@ -282,6 +282,7 @@ class Controller_Supermodlrui extends Controller_Page {
                                         'into' => $collection,
                                         'where'=> array('_id'=> $class_name),
                                         'set'  => $obj,
+                                        'overwrite'=> TRUE,
                                     ));
                                 }
                                 //not yet set, create
@@ -327,6 +328,7 @@ class Controller_Supermodlrui extends Controller_Page {
                                 'into' => $collection,
                                 'where'=> array('_id'=> $class_name),
                                 'set'  => $obj,
+                                'overwrite'=> TRUE,
                             ));
                         }
                         //not yet set, create

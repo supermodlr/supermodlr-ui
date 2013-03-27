@@ -37,11 +37,21 @@ class Supermodlrui {
             // get file contents (remove all newlines to ignore system differences)
             $file_contents = preg_replace('/\r|\n/','',file_get_contents($class_path));
 
+            $file_contents = preg_replace('/\s+/',' ',$file_contents);
+            $file_contents = preg_replace('/\t+/',' ',$file_contents);
+
+            $file_contents = trim(iconv(mb_detect_encoding($file_contents, mb_detect_order(), true), "UTF-8", $file_contents));
+
             // get existing file contents
             $file_contents_hash = md5($file_contents);
 
             // get db contents (remove all newlines to ignore system differences)
             $db_contents = preg_replace('/\r|\n/','',$object->generate_class_file_contents());
+
+            $db_contents = preg_replace('/\s+/',' ',$db_contents);
+            $db_contents = preg_replace('/\t+/',' ',$db_contents);
+
+            $db_contents = trim(iconv(mb_detect_encoding($db_contents, mb_detect_order(), true), "UTF-8", $db_contents));
 
             // generate file contents from db version of object
             $db_contents_hash = md5($db_contents);
@@ -50,14 +60,22 @@ class Supermodlrui {
             if ($file_contents_hash !== $db_contents_hash)
             {
 
+                fbl('rewriting class: '.$class_name);
+
                 // get the new object to save to the db
                 $new_db_contents = self::class_to_db_object($object_class, $class_path);
 
                 // loop through each prop
                 foreach ($new_db_contents as $prop => $val) 
                 {
-                    // set the new value on the object
-                    $object->set($prop,$val);
+                    try {
+                        // set the new value on the object
+                        $object->set($prop,$val);
+                    }
+                    catch (Exception $E)
+                    {
+                        unset($object->$prop);
+                    }
                 }
 
                 $object->cfg('create_file',FALSE);
@@ -67,10 +85,6 @@ class Supermodlrui {
 
                 $object->cfg('create_file',TRUE);
             }
-
-    
-            
-
 
         }
 
@@ -112,7 +126,7 @@ class Supermodlrui {
             $is_trait = TRUE;
         }   
 
-        $Class = new ReflectionClass($class_name);
+        
 
         if ($is_trait)
         {
@@ -120,10 +134,11 @@ class Supermodlrui {
             eval("class ".$temp_class_name." { use ".$class_name.";}");
             $Object = new $temp_class_name();
             $Object_Model = Model_Trait::factory();
+            $Class = new ReflectionClass($temp_class_name);
         }
         else
         {
-            $Object = new $class_name();
+            $Object = $class_name::factory();
             if ($is_model)
             {
                 $Object_Model = Model_Model::factory();
@@ -133,6 +148,7 @@ class Supermodlrui {
                 $Object_Model = Model_Field::factory();
             }
             
+            $Class = new ReflectionClass($class_name);
         }
         
         $fields = $Object_Model->get_fields();
@@ -145,51 +161,75 @@ class Supermodlrui {
         //set all non static properties
         foreach ($Class->getProperties() as $property) 
         {
-            //skip static and inheirited properties
+            //skip static and inherited properties
             if ($property->isStatic() || $property->class != $class_name) continue;
+
+
 
             //get the default property value
             if (isset($fields[$property->name]))
             {
+
                 $value = $fields[$property->name]->store_value($property->getValue($Object),'storage');
-                
             }
             else
             {
                 $value = $property->getValue($Object);
             }
 
-            
             $json[$property->name] = $value;
         }
      
 
-        //get name, if not set
-        if (!isset($json['name']) || !is_string($json['name']) || empty($json['name']))
+        //get model name/label/desc fields
+        if ($is_model)
         {
-            if ($is_model)
-            {
-                $json['name'] = Model_Model::get_name_from_class($class_name);
-            }
-            else if ($is_field)
-            {
-                $json['name'] = Model_Field::get_name_from_class($class_name);
-            }   
-            else if ($is_trait)
-            {
-                $json['name'] = Model_Trait::get_name_from_class($class_name);
-            }               
+            $name = $Object->get_name();
+            $json['name'] = $Object::$__scfg['name'];
+            $json['label'] = $Object::$__scfg['label'];
+            $json['description'] = $Object::$__scfg['description'];            
         }
+        //get name from field
+        else if ($is_field)
+        {
+            $name = $Object->name;
+
+        }   
+        //get trait name/label/desc fields
+        else if ($is_trait)
+        {
+
+          foreach ($Class->getProperties() as $property) 
+          {
+                //skip static and inherited properties
+                if ($property->isStatic() && preg_match("/^__([^_]+)__scfg/",$property->name,$matches))
+                {
+                    // extract the name from the scfg property
+                    $name = $matches[1];
+
+                    //setup the scfg static property name to be accessed
+                    $prop = "__{$name}__scfg";
+                    //get the value of the static property
+                    $trait_scfg = $Object::$$prop;
+                    //extract the field values
+                    $json['name'] = $trait_scfg['traits__'.$name.'__name'];
+                    $json['label'] = $trait_scfg['traits__'.$name.'__label'];
+                    $json['description'] = $trait_scfg['traits__'.$name.'__description'];  
+                    break ;
+                }
+            }
+            
+        }               
 
         //set extends, if not set
-        if (!isset($json['extends']))
+        if (!isset($json['extends']) && !$is_trait)
         {       
             $extends = get_parent_class($class_name);
 
             //extends is null if it is supposed to point to core
             if (strtolower($extends) === 'supermodlr' || strtolower($extends) === 'field')
             {
-                $json['extends'] = NULL;
+                // $json['extends'] = NULL;
             }
             else
             {
@@ -207,35 +247,24 @@ class Supermodlrui {
             }
         }
 
-        //get description, if any
-        if (!isset($json['description']))
-        {
-            //get description, if any
-            preg_match('/FileDescription:\s(.*)\r\n?/',implode("",$Class_Source),$matches);
-
-            //if a description was found
-            if (isset($matches[1]))
-            {
-                $json['description'] = trim($matches[1]);
-            }
-            else
-            {
-                $json['description'] = '';
-            }
-        }
-
         $field_keys = NULL;
+
         //get fields
-        if ($is_model && isset($Object::$__scfg[$json['name'].'.field_keys']))
+        if ($is_model && isset($Object::$__scfg[$name.'.field_keys']))
         {
             //get all field keys
-            $field_keys = $Object::$__scfg[$json['name'].'.field_keys'];
+            $field_keys = $Object::$__scfg[$name.'.field_keys'];
         }
         else if ($is_model && isset($Object::$__scfg['field_keys']))
         {
             //get all field keys
             $field_keys = $Object::$__scfg['field_keys'];
         } 
+        else if ($is_trait && isset($trait_scfg) && $trait_scfg['field_keys'])
+        {
+            $field_keys = $trait_scfg['field_keys'];
+        }
+
 
         if ($field_keys !== NULL)
         {
@@ -243,19 +272,35 @@ class Supermodlrui {
             foreach ($field_keys as $key)
             {
                 //skip pk which is auto-set and not stored in fields list
-                if (strtolower($key) == strtolower($Object->cfg('pk_name'))) continue;
+                if ($is_model && strtolower($key) == strtolower($Object->cfg('pk_name'))) continue;
 
                 //construct proper field rel value and add it to the json object
-                $json['fields'][] = array('model'=> 'field', '_id'=> 'Field_'.ucfirst($json['name']).'_'.ucfirst($key));
+                $json['fields'][] = array('model'=> 'field', '_id'=> 'Field_'.Supermodlr::get_name_case($name).'_'.Supermodlr::get_name_case($key));
             }
 
+        }
+
+        // look for traits
+        if ($is_model || $is_trait)
+        {
+            $traits = class_uses($class_name);  // only returns traits on the sent class, not inherited from parents or others included
+
+            foreach ($traits as $trait)
+            {
+                $json['traits'][] = array('model'=> 'trait', '_id'=> $trait);
+            }
+
+            if (empty($traits) && isset($json['traits']))
+            {
+                unset($json['traits']);
+            }
         }
 
         //loop through all methods
         foreach ($Class->getMethods() as $method) 
         {
 
-            //if this method is not inheireted from a parent class
+            //if this method is not inherited from a parent class
             if (preg_match('/(.*)Method \[ <user>/s',$method->__toString(),$matches)) 
             {
                 //get comments, if any
@@ -297,3 +342,27 @@ class Supermodlrui {
     }    
 }
 
+function mb_str_split( $string ) { 
+    # Split at all position not after the start: ^ 
+    # and not before the end: $ 
+    return preg_split('/(?<!^)(?!$)/u', $string ); 
+} 
+
+function mb_ord($string)
+{
+    if (extension_loaded('mbstring') === true)
+    {
+        mb_language('Neutral');
+        mb_internal_encoding('UTF-8');
+        mb_detect_order(array('UTF-8', 'ISO-8859-15', 'ISO-8859-1', 'ASCII'));
+
+        $result = unpack('N', mb_convert_encoding($string, 'UCS-4BE', 'UTF-8'));
+
+        if (is_array($result) === true)
+        {
+            return $result[1];
+        }
+    }
+
+    return ord($string);
+}
