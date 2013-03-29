@@ -55,6 +55,7 @@ class Controller_Supermodlrui extends Controller_Page {
             $model_rows = $model_class::query(array(
                 'limit'=> 20,
                 'array'=> TRUE,
+                'response_type' => 'export',
             ));
             $this->bind('model_rows',$model_rows);  
         }
