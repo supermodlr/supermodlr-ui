@@ -1,4 +1,4 @@
-<?php
+<?php defined('SYSPATH') or die('No direct script access.');
 
 class Supermodlrui {
 
@@ -8,10 +8,10 @@ class Supermodlrui {
 	 *    - get class file path
 	 *    - get json object of class
 	 *    - compare to loaded object
-	 *    - if different, then assume file is correct 
+	 *    - if different, then assume file is correct
 	 *        - write json object generated from file to loaded model
 	 *        - save model
-	 * 
+	 *
 	 * @param mixed $params Description.
 	 *
 	 * @access public
@@ -32,7 +32,7 @@ class Supermodlrui {
 			$rClass = new ReflectionClass($object_class);
 
 			// Get path to file
-			$class_path = $rClass->getFileName();        
+			$class_path = $rClass->getFileName();
 
 			// Get file contents (remove all newlines to ignore system differences)
 			$file_contents = preg_replace('/\r|\n/','',file_get_contents($class_path));
@@ -60,13 +60,18 @@ class Supermodlrui {
 			if ($file_contents_hash !== $db_contents_hash)
 			{
 
-				fbl('Rewriting class: '.$class_name);
+				fbl('Rewriting class: '.$rClass->name);
 
 				// Get the new object to save to the db
 				$new_db_contents = self::class_to_db_object($object_class, $class_path);
+				//fbl($file_contents, 'file_contents');
+				//fbl(file_get_contents($class_path), 'file_contents');
+				//fbl($db_contents, 'db_contents');
+				//fbl($object->generate_class_file_contents(), 'dbdb_contents');
+				//fbl($new_db_contents, $class_name.' new contents');
 
 				// Loop through each prop
-				foreach ($new_db_contents as $prop => $val) 
+				foreach ($new_db_contents as $prop => $val)
 				{
 					try {
 						// Set the new value on the object
@@ -92,7 +97,7 @@ class Supermodlrui {
 
     /**
      * class_to_db_object
-     * 
+     *
      * @param mixed $class_name   Description.
      * @param mixed $path_to_file Description.
      *
@@ -100,11 +105,11 @@ class Supermodlrui {
      *
      * @return mixed Value.
      */
-	public static function class_to_db_object($class_name, $path_to_file) 
+	public static function class_to_db_object($class_name, $path_to_file)
 	{
 		$json = array();
 
-		if (!class_exists($class_name,FALSE)) 
+		if (!class_exists($class_name,FALSE))
 		{
 			// Read the file
 			require_once $path_to_file;
@@ -118,11 +123,11 @@ class Supermodlrui {
 			$is_model = TRUE;
 		}
 		else if (substr($class_name,0,5) === 'Field')
-		{           
+		{
 			$is_field = TRUE;
 		}
 		else if (substr($class_name,0,5) === 'Trait')
-		{           
+		{
 			$is_trait = TRUE;
 		}
 
@@ -159,7 +164,7 @@ class Supermodlrui {
 		$json['_id'] = $class_name;
 
 		// Set all non static properties
-		foreach ($Class->getProperties() as $property) 
+		foreach ($Class->getProperties() as $property)
 		{
 			// Skip static and inherited properties
 			if ($property->isStatic() || $property->class != $class_name) continue;
@@ -183,19 +188,19 @@ class Supermodlrui {
 			$name = $Object->get_name();
 			$json['name'] = $Object::$__scfg['name'];
 			$json['label'] = $Object::$__scfg['label'];
-			$json['description'] = $Object::$__scfg['description'];            
+			$json['description'] = $Object::$__scfg['description'];
 		}
 		// Get name from field
 		else if ($is_field)
 		{
 			$name = $Object->name;
 
-		}   
+		}
 		// Get trait name/label/desc fields
 		else if ($is_trait)
 		{
 
-			foreach ($Class->getProperties() as $property) 
+			foreach ($Class->getProperties() as $property)
 			{
 				// Skip static and inherited properties
 				if ($property->isStatic() && preg_match("/^__([^_]+)__scfg/",$property->name,$matches))
@@ -212,7 +217,7 @@ class Supermodlrui {
 					// Extract the field values
 					$json['name'] = $trait_scfg['traits__'.$name.'__name'];
 					$json['label'] = $trait_scfg['traits__'.$name.'__label'];
-					$json['description'] = $trait_scfg['traits__'.$name.'__description'];  
+					$json['description'] = $trait_scfg['traits__'.$name.'__description'];
 					break ;
 				}
 			}
@@ -256,7 +261,7 @@ class Supermodlrui {
 		{
 			// Get all field keys
 			$field_keys = $Object::$__scfg['field_keys'];
-		} 
+		}
 		else if ($is_trait && isset($trait_scfg) && $trait_scfg['field_keys'])
 		{
 			$field_keys = $trait_scfg['field_keys'];
@@ -306,11 +311,11 @@ class Supermodlrui {
 		}
 
 		// Loop through all methods
-		foreach ($Class->getMethods() as $method) 
+		foreach ($Class->getMethods() as $method)
 		{
 
 			// If this method is not inherited from a parent class
-			if (preg_match('/(.*)Method \[ <user>/s',$method->__toString(),$matches)) 
+			if (preg_match('/(.*)Method \[ <user>/s',$method->__toString(),$matches))
 			{
 				// Get comments, if any
 				if (isset($matches[1]))
@@ -348,14 +353,14 @@ class Supermodlrui {
 		}
 
 		return $json;
-	}    
+	}
 }
 
-function mb_str_split( $string ) { 
-	// Split at all position not after the start: ^ 
-	// and not before the end: $ 
-	return preg_split('/(?<!^)(?!$)/u', $string ); 
-} 
+function mb_str_split( $string ) {
+	// Split at all position not after the start: ^
+	// and not before the end: $
+	return preg_split('/(?<!^)(?!$)/u', $string );
+}
 
 function mb_ord($string)
 {
